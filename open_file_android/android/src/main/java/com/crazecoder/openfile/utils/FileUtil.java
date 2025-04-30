@@ -6,9 +6,9 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.util.Log;
 
 import androidx.annotation.RequiresApi;
-import androidx.core.content.FileProvider;
 
 import java.io.File;
 import java.io.IOException;
@@ -227,7 +227,9 @@ public class FileUtil {
             if (isOtherAndroidDataDir(context, filePath)) {
                 uri = Uri.parse(changeToUri(filePath));
             } else {
-                uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileProvider.com.crazecoder.openfile", new File(filePath));
+                uri = Uri.parse(changeToPathUri(filePath));
+                Log.d("getFileUri", "change ===============>" + changeToPathUri(filePath));
+//                uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileProvider.com.crazecoder.openfile", new File(filePath));
             }
         } else {
             uri = Uri.fromFile(new File(filePath));

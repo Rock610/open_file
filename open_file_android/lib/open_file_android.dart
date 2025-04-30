@@ -18,18 +18,19 @@ class OpenFileAndroid extends OpenFilePlatform {
   MethodChannel get channel => _channel;
 
   @override
-  Future<OpenResult> open(
-    String? filePath, {
+  Future<OpenResult> open(String? filePath, {
     String? type,
+    bool isOpenFolder = false,
     bool isIOSAppOpen = false,
     String linuxDesktopName = "xdg",
     bool linuxUseGio = false,
     bool linuxByProcess = false,
   }) async {
     assert(filePath != null);
-    Map<String, String?> map = {
+    Map<String, dynamic> map = {
       "file_path": filePath!,
       "type": type,
+      "isOpenFolder": isOpenFolder
     };
     final _result = await _channel.invokeMethod('open_file', map);
     final resultMap = json.decode(_result) as Map<String, dynamic>;

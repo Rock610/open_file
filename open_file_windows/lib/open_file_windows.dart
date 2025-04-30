@@ -25,6 +25,7 @@ class OpenFileWindows extends OpenFilePlatform {
   Future<OpenResult> open(
     String? filePath, {
     String? type,
+        bool isOpenFolder = false,
     bool isIOSAppOpen = false,
     String linuxDesktopName = "xdg",
     bool linuxUseGio = false,

@@ -21,6 +21,11 @@ import com.crazecoder.openfile.utils.FileUtil;
 import com.crazecoder.openfile.utils.JsonUtil;
 import com.crazecoder.openfile.utils.MapUtil;
 
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
@@ -29,9 +34,6 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry;
-
-import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -51,6 +53,7 @@ public class OpenFilePlugin implements MethodCallHandler
     private Result result;
     private String filePath;
     private String mimeType;
+    private boolean isOpenFolder;
 
     private boolean isResultSubmitted = false;
 
@@ -65,6 +68,9 @@ public class OpenFilePlugin implements MethodCallHandler
             this.result = result;
             if (call.hasArgument("file_path")) {
                 filePath = FileUtil.getCanonicalPath(call.argument("file_path"));
+            }
+            if (call.hasArgument("isOpenFolder") && call.argument("isOpenFolder") != null) {
+                isOpenFolder = call.argument("isOpenFolder");
             }
 
             if (call.hasArgument("type") && call.argument("type") != null) {
@@ -135,11 +141,24 @@ public class OpenFilePlugin implements MethodCallHandler
         if (!isFileAvailable()) {
             return;
         }
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.addCategory(Intent.CATEGORY_DEFAULT);
-        Uri uri = FileUtil.getFileUri(context, filePath);
-        intent.setDataAndType(uri, mimeType);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        Intent intent;
+        Uri uri;
+        if (isOpenFolder) {
+            String encodedPath = Uri.encode(getDocumentProviderPath(filePath));
+            uri =
+                    Uri.parse("content://com.android.externalstorage.documents/document/" + encodedPath);
+            intent = openFolderIntent(filePath, uri);
+            activity.startActivity(intent);
+            result(0, "done");
+            return;
+        } else {
+            intent = new Intent(Intent.ACTION_VIEW);
+            intent.addCategory(Intent.CATEGORY_DEFAULT);
+            uri = FileUtil.getFileUri(context, filePath);
+            intent.putExtra("android.provider.extra.INITIAL_URI", uri);
+            intent.setDataAndType(uri, mimeType);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        }
         List<ResolveInfo> resolveInfoList;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             resolveInfoList = activity.getPackageManager().queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_DEFAULT_ONLY));
@@ -164,6 +183,40 @@ public class OpenFilePlugin implements MethodCallHandler
             message = "File opened incorrectly。";
         }
         result(type, message);
+    }
+
+    private Intent openFolderIntent(String path, Uri uri) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+
+        intent.setDataAndType(uri, "*/*");
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra("android.provider.extra.INITIAL_URI", uri);
+        return intent;
+    }
+
+    private String getDocumentProviderPath(String folderPath) {
+        if (folderPath.isEmpty()) {
+            return "primary:recent";
+        }
+
+        String primaryPrefix = Environment.getExternalStorageDirectory().getAbsolutePath();
+        String regex = "^/storage/([A-Za-z0-9-]+)/?(.*)";
+        Pattern pattern = Pattern.compile(regex);
+
+        if (folderPath.startsWith(primaryPrefix)) {
+            return "primary:" + folderPath.substring(primaryPrefix.length());
+        }
+
+        Matcher matcher = pattern.matcher(folderPath);
+        if (matcher.matches()) {
+            String storageId = matcher.group(1);
+            String remainingPath = matcher.group(2);
+            if (storageId != null) {
+                return storageId + ":" + (remainingPath != null ? remainingPath : "");
+            }
+        }
+
+        return "primary:" + folderPath;
     }
 
     private void openApkFile() {

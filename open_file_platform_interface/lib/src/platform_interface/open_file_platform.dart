@@ -16,9 +16,9 @@ abstract class OpenFilePlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<OpenResult> open(
-    String? filePath, {
+  Future<OpenResult> open(String? filePath, {
     String? type,
+    bool isOpenFolder = false,
     bool isIOSAppOpen = false,
     String linuxDesktopName = "xdg",
     bool linuxUseGio = false,

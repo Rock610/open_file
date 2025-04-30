@@ -19,6 +19,7 @@ class MethodChannelOpenFile extends OpenFilePlatform {
   Future<OpenResult> open(
     String? filePath, {
     String? type,
+        bool isOpenFolder = false,
     bool isIOSAppOpen = false,
     String linuxDesktopName = "xdg",
     bool linuxUseGio = false,
@@ -28,6 +29,7 @@ class MethodChannelOpenFile extends OpenFilePlatform {
       "file_path": filePath!,
       "type": type,
       "isIOSAppOpen": isIOSAppOpen,
+      "isOpenFolder": isOpenFolder,
     };
     final result = await _channel.invokeMethod('open_file', map);
     final resultMap = json.decode(result) as Map<String, dynamic>;
