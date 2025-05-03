@@ -227,9 +227,7 @@ public class FileUtil {
             if (isOtherAndroidDataDir(context, filePath)) {
                 uri = Uri.parse(changeToUri(filePath));
             } else {
-                uri = Uri.parse(changeToPathUri(filePath));
-                Log.d("getFileUri", "change ===============>" + changeToPathUri(filePath));
-//                uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileProvider.com.crazecoder.openfile", new File(filePath));
+                uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileProvider.com.crazecoder.openfile", new File(filePath));
             }
         } else {
             uri = Uri.fromFile(new File(filePath));
